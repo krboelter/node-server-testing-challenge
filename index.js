@@ -2,6 +2,7 @@ const express = require("express")
 const server = express()
 const db = require("./data/config")
 
+server.use(express.json())
 server.get("/dogs", async (req, res, next) => {
     try{
         const dogs = await db("dogs")
@@ -11,13 +12,37 @@ server.get("/dogs", async (req, res, next) => {
     }
 })
 
-server.post("/dogs", (req, res, next) => {
-    return null
+function findDogById(id) {
+    return db("dogs").where({ id }).first()    
+}
+
+async function add(dog) {
+    const [id] = await db("dogs").insert(dog)
+
+    return findDogById(id)
+}
+
+server.post("/dogs", async (req, res, next) => {
+    try {        
+        const newDog = await add(req.body)
+        res.status(201).json(newDog)
+
+    } catch(err) {
+        next(err)
+    }
 })
 
-server.delete("/dogs/:id", (req, res, next_ => {
-    return null
-}))
+server.delete("/dogs/:id", async (req, res, next) => {
+    try {
+        const removed = await db("dogs").del(req.params.id)
+    
+        res.status(200).json({
+            message: "Dog has been removed."
+        })
+    } catch(err) {
+        next(err)
+    }
+})
 
 server.use((err, req, res, next) => {
     console.log("ERROR", err)
@@ -26,7 +51,6 @@ server.use((err, req, res, next) => {
     })
 })
 
-server.use(express.json())
 const port = process.env.PORT || 5000
 
 if(!module.parent) {
